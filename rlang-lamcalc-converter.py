@@ -1,7 +1,14 @@
-
+RLANG_EXPR_TYPES = [
+    'Factor',
+    'Constant',
+    'Proposition',
+    'import',
+    'Action',
+    'Policy'
+]
 
 def get_lines_method():
-    file_path = "gridworld.rlang"
+    file_path = "rlang_examples/gridworld.rlang"
     lines = []
     
     with open(file_path, 'r') as f:
@@ -19,9 +26,14 @@ def get_lines_method():
         
     # print(lines)
 
-def find_end_of_effect():
-    pass
-
+def get_expr_body(line):
+    line_split = line.split()
+    if line_split == [] or line_split[0] == '#' or line_split[0] == '':
+        return []
+    elif line_split[0] in RLANG_EXPR_TYPES:
+        return []
+    else:
+        return [line_split[0]] + get_expr_body(line_split[1:])
 
 # get_sentences()
 get_lines_method()
