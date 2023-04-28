@@ -1,40 +1,55 @@
-RLANG_EXPR_TYPES = [
-    'Factor',
-    'Constant',
-    'Proposition',
-    'import',
-    'Action',
-    'Policy'
-]
 
+# words_and_lines = []
+
+end_characters = ["#", "Effect" , "Proposition", "Factor", "Action", "Constant", "Policy"]
+start_chars = ["Effect" , "Proposition", "Factor", "Action", "Constant", "Policy"]
+
+#Convert file into list of lines of words
 def get_lines_method():
-    file_path = "rlang_examples/gridworld.rlang"
+    file_path = "gridworld.rlang"
     lines = []
     
     with open(file_path, 'r') as f:
-        for line in f:
-            # if(printline[0])
-            # print(line[0])
+        for idx, line in enumerate(f):
             words = line.split()
-            if(words):
-                if(words[0] == 'Effect'):
-                    print("effect")
-            # print(words[0])
-            lines.append(words)
-            # print("Current line: ", )
+            if(words): #only add lines if non-empty
+                lines.append(words)
 
-        
+    # print("Parsed file into lines and words: ")
     # print(lines)
+    effects = {}
+    make_dictionary(lines, effects)
+    print(effects)
 
-def get_expr_body(line):
-    line_split = line.split()
-    if line_split == [] or line_split[0] == '#' or line_split[0] == '':
-        return []
-    elif line_split[0] in RLANG_EXPR_TYPES:
-        return []
-    else:
-        return [line_split[0]] + get_expr_body(line_split[1:])
 
-# get_sentences()
+diction ={"Effect" : {}, "Factor": {}, "Constant": {}, "Proposition" : {}, "Action": {}, "Policy": {}}
+#Creates mappings from name of effect to the body of the effect
+def make_dictionary(lines, effects):
+#    body = []
+   for idx, line in enumerate(lines):
+        if(line[0] in start_chars):
+            body = []
+            print(line)
+            counter = 1
+            if(line[2:] != []): #for one line functions
+                body.append(line[3:]) #not great 
+
+            #keep adding to the body of the function if haven't reached another function
+            while(idx+counter < len(lines) and lines[idx+counter][0] not in end_characters):
+                #remove any comments in lines
+                if("#" in lines[idx+counter]):
+                    # print("# in there")
+                    # print(lines[idx+counter])
+                    index = lines[idx+counter].index('#')
+                    # print("index: ", index)
+                    body.append(lines[idx+counter][:index])
+                else:
+                    body.append(lines[idx+counter])
+                counter += 1  
+            # effects[line[1].strip(':')] = body 
+            diction[line[0]][line[1].strip(':')] =body #Udpate dictionary
+
+
 get_lines_method()
-
+print("Dictionary: ", diction)
+# print("effects: ", diction["Effect"]["main"])
