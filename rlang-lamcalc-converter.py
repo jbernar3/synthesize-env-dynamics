@@ -56,25 +56,32 @@ def translate_one_line(line):
 
 def translate_expr(lines):
     if lines == []:
-        "", []
+        return "", []
     elif lines[0] == []:
-        translate_expr(lines[1:])
-    elif lines[0][0] == 'if':
+        return translate_expr(lines[1:])
+    elif lines[0][0] == 'if' or lines[0][0] == 'elif':
         str_out, rst = translate_if_expr(lines)
-        str_out + translate_expr(rst)
-    return "Hello", []
+        str_out + translate_expr(rst), []
+    return translate_one_line(lines[0]) + translate_expr(lines[1:]) , []
+
+def translate_elif_body(lines):
+    if lines == [] or lines[0] == [] or lines[0][0] == 'elif':
+        return ")", lines[1:]
+    else:
+        out, rst = translate_elif_body(lines[1:])
+        return translate_one_line(lines[0]) + " " + out, rst 
 
 def translate_if_expr(lines):
     lam_expr = ""
     if lines == [] or lines[0] == []:
         return "4", lines
-    elif lines[0][0] == 'if':
-        lam_expr += "(if "
+    elif lines[0][0] == 'if' or lines[0][0] == 'elif':
+        lam_expr += "(" + lines[0][0] + " "
         lam_expr += translate_one_line(lines[0][1:])
-        out1, rst1 = translate_expr(lines[1:])
-        lam_expr += " " + out1
-        out2, rst2 = translate_expr(rst1)
-        lam_expr += " " + out2
+        out1, rst1 = translate_elif_body(lines[1:])
+        lam_expr += " (" + out1
+        out2, rst2 = translate_elif_body(rst1)
+        lam_expr += " (" + out2
         return lam_expr + ")", rst2
     else:
         return "5", lines
