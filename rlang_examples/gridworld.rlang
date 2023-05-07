@@ -53,7 +53,7 @@ Effect action_effect:
 
 Effect main:
     if in_lava:
-        Reward -1
+        Reward - 1
     if reached_goal:
         Reward 1
     if reached_wall:
