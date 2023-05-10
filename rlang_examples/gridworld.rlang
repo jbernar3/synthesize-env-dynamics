@@ -59,4 +59,4 @@ Effect main:
     if reached_wall:
         S' -> S     # state remains the same.
     else:
-        -> action_effect
+        action_effect

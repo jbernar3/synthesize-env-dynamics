@@ -1,6 +1,7 @@
+import re
 
 # words_and_lines = []
-
+number_pattern = r'^[-+]?[0-9]*\.?[0-9]+$'
 global_var_num = 0
 
 end_characters = ["#", "Effect" , "Proposition", "Factor", "Action", "Constant", "Policy"]
@@ -8,7 +9,7 @@ start_chars = ["Effect" , "Proposition", "Factor", "Action", "Constant", "Policy
 operators = ["==", "+", "-"]
 #Convert file into list of lines of words
 def get_lines_method():
-    file_path = "rlang_examples/gridworld.rlang"
+    file_path = "rlang_examples/example.rlang"
     lines = []
     
     with open(file_path, 'r') as f:
@@ -53,19 +54,39 @@ def make_dictionary(lines, effects):
 
 var_to_num = dict()
 
-def translate_elt(elt):
+def translate_list(line):
+    if line == []:
+        return "", []
+    elif ']' in line[0]:
+        line[0] = line[0].replace(']', '')
+        return translate_elt(line)
+    elif '[' in line[0]:
+        line[0] = line[0].replace('[', '')
+        line[0] = line[0].replace(',', '')
+        out, rst = translate_elt(line)
+        out2, rst2 = translate_list(rst)
+        return "(" + out + " " + out2 + ")", rst2
+    else:
+        line[0] = line[0].replace(',', '')
+        out, rst = translate_elt(line)
+        out2, rst2 = translate_list(rst)
+        return out + " " + out2, rst2
+
+def translate_elt(line):
     global global_var_num
     global var_to_num
-    if elt.isnumeric():
-        return elt
+    global number_pattern
+    elt = line[0].replace(':', '')
+    if bool(re.match(number_pattern, elt)):
+        return elt, line[1:]
     elif elt in var_to_num:
-        return "$" + var_to_num[elt]
-    elif elt == "[":
-        return "<list>"
+        return "$" + var_to_num[elt], line[1:]
+    elif elt[0] == "[":
+        return translate_list(line)
     else:
         var_to_num[elt] = str(global_var_num)
         global_var_num += 1
-        return "$" + var_to_num[elt]
+        return "$" + var_to_num[elt], line[1:]
 
 
 # input lines
@@ -73,13 +94,20 @@ def translate_elt(elt):
 def translate_one_line(line):
     global operators
     global global_var_num
-    if (line[1] == "=="):
-        return "(= " + translate_elt(line[0]) + " " + translate_elt(line[2]) + ")"
+    if (len(line) == 1):
+        return translate_elt(line)
+    elif (line[1] == "=="):
+        out, rst = translate_elt(line)
+        out2, rst2 = translate_elt(rst[1:])
+        return "(= " + out + " " + out2 + ")", rst2
+    elif (line[1] == "->"):
+        out, rst = translate_elt(line)
+        out2, rst2 = translate_elt(rst[1:])
+        return "(set " + out + " " + out2 + ")", rst2
     elif (line[1] in operators):
-        first = "$" + str(global_var_num)
-        second = "$" + str(global_var_num + 1)
-        global_var_num += 2
-        return "(" + line[1] + " " + translate_elt(line[0]) + " " + translate_elt(line[2]) + ")"
+        out, rst = translate_elt(line)
+        out2, rst2 = translate_elt(rst[1:])
+        return "(" + rst[0] + " " + out + " " + out2 + ")", rst2
     elif (line[1] == "->"):
         return translate_one_line(line[2:])
     return "<one-line>"
@@ -90,9 +118,9 @@ def translate_expr(lines):
     elif lines[0] == []:
         return translate_expr(lines[1:])
     elif lines[0][0] == 'if' or lines[0][0] == 'elif':
-        str_out, rst = translate_if_expr(lines)
+        str_out, rst = translate_if_expr_helper(lines)
         str_out + translate_expr(rst), []
-    return translate_one_line(lines[0]) + translate_expr(lines[1:]) , []
+    return translate_one_line(lines[0])[0] + translate_expr(lines[1:]) , []
 
 # def translate_elif_body(lines):
 #     if lines == [] or lines[0] == [] or lines[0][0] == 'elif':
@@ -104,10 +132,10 @@ def translate_expr(lines):
 # return array of translated one-liners and then rst (next elif or [])
 def translate_if_clause_body(lines):
     if lines == [] or lines[0] == [] or lines[0][0] == 'elif':
-       return "]", lines
+       return ")", lines
     else:
         out, rst = translate_if_clause_body(lines[1:])
-        return translate_one_line(lines[0]) + " " + out, rst
+        return translate_one_line(lines[0])[0] + " " + out, rst
     
 def translate_if_expr_helper(lines):
     lam_expr = ""
@@ -115,9 +143,9 @@ def translate_if_expr_helper(lines):
         return "()", lines
     elif lines[0][0] == 'if' or lines[0][0] == 'elif':
         lam_expr += "(if" + " "
-        lam_expr += translate_one_line(lines[0][1:]) + " "
+        lam_expr += translate_one_line(lines[0][1:])[0] + " "
         out, rst = translate_if_clause_body(lines[1:])
-        lam_expr += "[" + out + " "
+        lam_expr += "(" + out + " "
         out2, rst2 = translate_if_expr_helper(rst)
         lam_expr += out2 + ")"
         return lam_expr, rst2
