@@ -6,10 +6,10 @@ global_var_num = 0
 
 end_characters = ["#", "Effect" , "Proposition", "Factor", "Action", "Constant", "Policy"]
 start_chars = ["Effect" , "Proposition", "Factor", "Action", "Constant", "Policy"]
-operators = ["==", "+", "-"]
+operators = {"==": "eq?", "+": "+", "-": "-", "!=": "neq?"}
 #Convert file into list of lines of words
 def get_lines_method():
-    file_path = "rlang_examples/example.rlang"
+    file_path = "rlang_examples/gridworld.rlang"
     lines = []
     
     with open(file_path, 'r') as f:
@@ -76,11 +76,13 @@ def translate_elt(line):
     global global_var_num
     global var_to_num
     global number_pattern
-    elt = line[0].replace(':', '')
+    elt = re.sub(r'[:,()]+', '', line[0])
+    elt = elt.replace('(', '')
+    elt = elt.replace(')', '')
     if bool(re.match(number_pattern, elt)):
         return elt, line[1:]
     elif elt in var_to_num:
-        return "$" + var_to_num[elt], line[1:]
+        return "$" + var_to_num[elt], line[1:] 
     elif elt[0] == "[":
         return translate_list(line)
     else:
@@ -96,18 +98,29 @@ def translate_one_line(line):
     global global_var_num
     if (len(line) == 1):
         return translate_elt(line)
-    elif (line[1] == "=="):
-        out, rst = translate_elt(line)
-        out2, rst2 = translate_elt(rst[1:])
-        return "(= " + out + " " + out2 + ")", rst2
+    if (line[0][0] == '('):
+        first_expr = line
+        first_expr[0] = first_expr[0].replace('(', '')
+        out, rst = translate_one_line(line)
+        if rst[0] == "and":
+            next_expr = rst[1:]
+            next_expr[0] = next_expr[0].replace('(', '')
+            out2, rst2 = translate_one_line(next_expr)
+            return "(and " + out + " " + out2 + ")", rst2
+        return out, rst
+    # elif (line[1] == "=="):
+    #     out, rst = translate_elt(line)
+    #     out2, rst2 = translate_elt(rst[1:])
+    #     return "(= " + out + " " + out2 + ")", rst2
     elif (line[1] == "->"):
         out, rst = translate_elt(line)
-        out2, rst2 = translate_elt(rst[1:])
-        return "(set " + out + " " + out2 + ")", rst2
+        out2, rst2 = translate_one_line(rst[1:])
+        #return "(set " + out + " " + out2 + ")", rst2
+        return out2, rst2
     elif (line[1] in operators):
         out, rst = translate_elt(line)
         out2, rst2 = translate_elt(rst[1:])
-        return "(" + rst[0] + " " + out + " " + out2 + ")", rst2
+        return "(" + operators[rst[0]] + " " + out + " " + out2 + ")", rst2
     elif (line[1] == "->"):
         return translate_one_line(line[2:])
     return "<one-line>"
@@ -118,57 +131,54 @@ def translate_expr(lines):
     elif lines[0] == []:
         return translate_expr(lines[1:])
     elif lines[0][0] == 'if' or lines[0][0] == 'elif':
-        str_out, rst = translate_if_expr_helper(lines)
+        str_out, rst = translate_if_expr(lines, True)
         str_out + translate_expr(rst), []
     return translate_one_line(lines[0])[0] + translate_expr(lines[1:]) , []
 
-# def translate_elif_body(lines):
-#     if lines == [] or lines[0] == [] or lines[0][0] == 'elif':
-#         return ")", lines[1:]
-#     else:
-#         out, rst = translate_elif_body(lines[1:])
-#         return translate_one_line(lines[0]) + " " + out, rst
-
 # return array of translated one-liners and then rst (next elif or [])
-def translate_if_clause_body(lines):
-    if lines == [] or lines[0] == [] or lines[0][0] == 'elif':
-       return ")", lines
+def translate_if_clause_body(lines, outputList):
+    if lines == [] or lines[0] == [] or lines[0][0] == 'elif' or lines[0][0] == 'else:':
+       return "empty", lines
+    elif lines[0][1] == '->' and lines[0][2] == 'if': # handle nested if statement
+        lines[0] = lines[0][2:]
+        out, rst = translate_if_expr(lines, False)
+        out2, rst2 = translate_if_clause_body(rst, outputList)
+        if outputList:
+            return "(cons " + out + " " + out2 + ")", rst2
+        return out + " " + out2, rst2
+        # return "(cons " + out + " " + out2 + ")", rst2 if outputList else out + " " + out2, rst2
     else:
-        out, rst = translate_if_clause_body(lines[1:])
-        return translate_one_line(lines[0])[0] + " " + out, rst
+        out, rst = translate_if_clause_body(lines[1:], outputList)
+        if outputList:
+            return "(cons " + translate_one_line(lines[0])[0] + " " + out + ")", rst
+        return translate_one_line(lines[0])[0] + " ", rst
     
-def translate_if_expr_helper(lines):
+# Translates an if expression from Rlang to Lamda calculus
+#   lines - an array of lines; each being an array of whitespace-separated
+#           elements from the original rlang file
+#   outputClauseList - if set to True, each if/elif/else clause will be outputted
+#                      as a list of values using con expressions. Else, the clause
+#                      will be outputted as the value its expression(s) represents
+def translate_if_expr(lines, outputClauseList):
     lam_expr = ""
     if lines == [] or lines[0] == []:
         return "()", lines
+    elif lines[0][0] == 'else:':
+        out, rst = translate_one_line(lines[1])
+        return out, lines[2:]
     elif lines[0][0] == 'if' or lines[0][0] == 'elif':
         lam_expr += "(if" + " "
         lam_expr += translate_one_line(lines[0][1:])[0] + " "
-        out, rst = translate_if_clause_body(lines[1:])
-        lam_expr += "(" + out + " "
-        out2, rst2 = translate_if_expr_helper(rst)
+        out, rst = translate_if_clause_body(lines[1:], outputClauseList)
+        lam_expr += "" + out + " "
+        out2, rst2 = translate_if_expr(rst, True)
         lam_expr += out2 + ")"
         return lam_expr, rst2
-
-# def translate_if_expr(lines):
-#     lam_expr = ""
-#     if lines == [] or lines[0] == []:
-#         return "<error>", lines
-#     elif lines[0][0] == 'if' or lines[0][0] == 'elif':
-#         lam_expr += "(" + lines[0][0] + " "
-#         lam_expr += translate_one_line(lines[0][1:])
-#         out1, rst1 = translate_elif_body(lines[1:])
-#         lam_expr += " " + out1
-#         out2, rst2 = translate_elif_body(rst1)
-#         lam_expr += " (" + out2
-#         return lam_expr + ")", rst2
-#     else:
-#         return "5", lines
 
 
 get_lines_method()
 # print("Effect: ", diction["Effect"]["action_effect"])
 # print("---------------------------------")
-out, lines = translate_if_expr_helper(diction["Effect"]["action_effect"])
+out, lines = translate_if_expr(diction["Effect"]["action_effect"], True)
 print(out)
 # print("effects: ", diction["Effect"]["main"])

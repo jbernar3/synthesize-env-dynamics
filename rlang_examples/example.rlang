@@ -75,3 +75,45 @@ Effect action_effect:
             S' -> [0, 1]
         elif S == [2, 2]:
             S' -> [0, 2]
+
+            a -> $0
+oy -> $1
+dim-1 -> $2
+ox -> $3
+
+(if (and (= a 0) (!= oy dim-1))
+    ((set ox ox) (set oy (+ oy 1)) )
+    (if (and (= a 1) (!= oy 0))
+        ((set ox ox) (set oy (- oy 1)) )
+        (if (and (= a 2) (!= ox 0)) 
+            (< (set $1 $1) )
+(if (= $0 3)
+((set $3 (+ $3 1)) (set $1 $1) ) ()))))
+
+(if (and (eq? $0 0) (neq? $1 $2))
+    (cons $3 (cons (+ $1 1) empty))
+        (if (and (eq? $0 1) (neq? $1 0))
+        (cons $3 (cons (- $1 1) empty))
+        (if (and (eq? $0 2) (neq? $3 0))
+            (cons (- $3 1) (cons $1 empty))
+            (if (eq? $0 3) (cons (+ $3 1) (cons $1 empty)) ()))))
+
+
+(if (eq? $0 0)
+(cons $3 
+(cons (if (eq? $1 $2) (cons $1 empty) (+ $1 1)) empty))
+
+(if (eq? $0 1) (cons $3 (cons (if (eq? $1 0) (cons $1 empty) (- $1 1)) empty))
+
+(if (eq? $0 2) (cons (if (eq? $3 0) (cons $3 empty) (- $3 1)) (cons $1 empty))
+
+(if (eq? $0 3) (cons (if (eq? $3 $2) (cons $3 empty) (+ $3 1)) (cons $1 empty)) ()))))
+
+
+(if (eq? $0 0)
+    (cons $3 (cons (if (eq? $1 $2) $1  (+ $1 1)) empty))
+    (if (eq? $0 1)
+    (cons $3 (cons (if (eq? $1 0) $1  (- $1 1)) empty))
+    (if (eq? $0 2)
+    (cons (if (eq? $3 0) $3  (- $3 1)) (cons $1 empty))
+    (if (eq? $0 3) (cons (if (eq? $3 $2) $3  (+ $3 1)) (cons $1 empty)) ()))))
