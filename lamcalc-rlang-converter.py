@@ -53,10 +53,10 @@ def translate_cons_helper(input):
 def translate_expr(input):
     global binary_operators
     rlang_out = ''
-    if (input == [] or input[0] == '()'):
+    if (input == [] or input[0].startswith('()')):
         return rlang_out, input[1:]
     elif (input[0][0] == '$'):
-        return input[0], input[1:]
+        return input[0].replace('$', 'var'), input[1:]
     elif (input[0].startswith('empty)')):
         return rlang_out + ']', input[1:]
     elif bool(re.match(number_pattern, input[0].replace(')', ''))):
@@ -68,6 +68,7 @@ def translate_expr(input):
         out2, rst3 = translate_expr(rst2)
         rlang_out += out2 + '\n'
         out3, rst4 = translate_expr(rst3)
+        if (out3 == ''): return rlang_out, rst
         rlang_out += 'else:\n' + out3
         if (rst4 != []): ValueError("if not properly closed")
         return rlang_out, rst
