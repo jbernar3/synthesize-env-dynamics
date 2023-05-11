@@ -1,6 +1,4 @@
 import re
-import sys
-# sys.tracebacklimit = 0
 
 lamcalc_input = []
 binary_operators = {"(+": "+", "(eq?": "==", "(-": "-"}
@@ -12,14 +10,13 @@ def read_words_method():
     lamcalc_input = []
     
     with open(file_path, 'r') as f:
-        for idx, line in enumerate(f):
+        for _, line in enumerate(f):
             words = line.split()
             if(words): #only add lines if non-empty
                 lamcalc_input = lamcalc_input + words
 
 def get_expr_body(input, num_open):
     if input == []:
-        print(num_open)
         if num_open > 0: ValueError('expression body not closed off properly')
         else: return [], []
     elif '(' == input[0][0]:
@@ -56,11 +53,24 @@ def translate_expr(input):
     if (input == [] or input[0].startswith('()')):
         return rlang_out, input[1:]
     elif (input[0][0] == '$'):
-        return input[0].replace('$', 'var'), input[1:]
+        return input[0].replace('$', 'var').replace(')', ''), input[1:]
     elif (input[0].startswith('empty)')):
         return rlang_out + ']', input[1:]
     elif bool(re.match(number_pattern, input[0].replace(')', ''))):
         return rlang_out + input[0].replace(')', ''), input[1:]
+    elif (input[0] == '(index'):
+        body, rst = get_expr_body(input, 0)
+        out, rst2 = translate_expr(body[1:])
+        out2, rst3 = translate_expr(rst2)
+        return out2 + '[' + out + ']', rst
+    elif (input[0] == '(incr'):
+        body, rst = get_expr_body(input, 0)
+        out, rst2 = translate_expr(body[1:])
+        return out + ' + 1', rst
+    elif (input[0] == '(decr'):
+        body, rst = get_expr_body(input, 0)
+        out, rst2 = translate_expr(body[1:])
+        return out + ' - 1', rst
     elif (input[0] == '(if'):
         body, rst = get_expr_body(input, 0)
         out, rst2 = translate_expr(body[1:])
@@ -87,8 +97,7 @@ def translate_expr(input):
         rlang_out += out2
         return rlang_out, rst
     else:
-        print(input)
-        return "something", []
+        return "<parse-error>", []
 
 
 

@@ -1,7 +1,2 @@
-(if (eq? $0 0)
-    (cons $3 (cons (if (eq? $1 $2) $1  (+ $1 1)) empty))
-    (if (eq? $0 1)
-    (cons $3 (cons (if (eq? $1 0) $1  (- $1 1)) empty))
-    (if (eq? $0 2)
-    (cons (if (eq? $3 0) $3  (- $3 1)) (cons $1 empty))
-    (if (eq? $0 3) (cons (if (eq? $3 $2) $3  (+ $3 1)) (cons $1 empty)) ()))))
+(if (eq? (index 2 $0) 0) (cons (index 0 $0) (cons (if (eq? (index 1 $0) (decr $1)) (index 1 $0) (incr (index 1 $0))) empty)) (if (eq? (index 2 $0) 1) (cons (index 0 $0) (cons (if (eq? (index 1 $0) 0) (index 1 $0) (decr (index 1 $0))) empty)) (if (eq? (index 2 $0) 2) (cons (if (eq? (index 0 $0) 0) (index 0 $0) (decr (index 0 $0))) (cons (index 1 $0) empty)) (cons (if
+(eq? (index 0 $0) (decr $1)) (index 0 $0) (incr (index 0 $0))) (cons (index 1 $0) empty))))) 

@@ -13,7 +13,7 @@ def get_lines_method():
     lines = []
     
     with open(file_path, 'r') as f:
-        for idx, line in enumerate(f):
+        for _, line in enumerate(f):
             words = line.split()
             if(words): #only add lines if non-empty
                 lines.append(words)
@@ -32,7 +32,6 @@ def make_dictionary(lines, effects):
    for idx, line in enumerate(lines):
         if(line[0] in start_chars):
             body = []
-            #print(line)
             counter = 1
             if(line[2:] != []): #for one line functions
                 body.append(line[3:]) #not great 
@@ -41,15 +40,11 @@ def make_dictionary(lines, effects):
             while(idx+counter < len(lines) and lines[idx+counter][0] not in end_characters):
                 #remove any comments in lines
                 if("#" in lines[idx+counter]):
-                    # print("# in there")
-                    # print(lines[idx+counter])
                     index = lines[idx+counter].index('#')
-                    # print("index: ", index)
                     body.append(lines[idx+counter][:index])
                 else:
                     body.append(lines[idx+counter])
                 counter += 1  
-            # effects[line[1].strip(':')] = body 
             diction[line[0]][line[1].strip(':')] =body #Udpate dictionary
 
 var_to_num = dict()
@@ -108,14 +103,9 @@ def translate_one_line(line):
             out2, rst2 = translate_one_line(next_expr)
             return "(and " + out + " " + out2 + ")", rst2
         return out, rst
-    # elif (line[1] == "=="):
-    #     out, rst = translate_elt(line)
-    #     out2, rst2 = translate_elt(rst[1:])
-    #     return "(= " + out + " " + out2 + ")", rst2
     elif (line[1] == "->"):
         out, rst = translate_elt(line)
         out2, rst2 = translate_one_line(rst[1:])
-        #return "(set " + out + " " + out2 + ")", rst2
         return out2, rst2
     elif (line[1] in operators):
         out, rst = translate_elt(line)
@@ -123,7 +113,7 @@ def translate_one_line(line):
         return "(" + operators[rst[0]] + " " + out + " " + out2 + ")", rst2
     elif (line[1] == "->"):
         return translate_one_line(line[2:])
-    return "<one-line>"
+    return "<parse-error:one-line>"
 
 def translate_expr(lines):
     if lines == []:
